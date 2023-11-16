@@ -26,6 +26,11 @@ void my_ls() {
 	execlp("ls", "ls", NULL);
 }
 
+void my_pwd() {
+	/* 기본 pwd 구현 */
+	execlp("pwd", "pwd", NULL);
+}
+
 void my_cd(char *dir) {
 	/* 기본 cd 구현 */
 	if (dir == NULL) {
@@ -129,86 +134,86 @@ int main() {
 			perror("fgets 실패");
 			exit(EXIT_FAILURE);
 		}
-	/* 줄 바꿈 문자를 제거합니다. */
-        buf[strcspn(buf, "\n")] = '\0';
 
-        
+		/* 줄 바꿈 문자를 제거합니다. */
+		buf[strcspn(buf, "\n")] = '\0';
 
-	/* "exit" 입력 시 프로그램 종료 */
-        if (strcmp(buf, "exit") == 0) {
-            printf("프로그램을 종료합니다.\n");
-            exit(EXIT_SUCCESS);
-        }
+		/* "exit" 입력 시 프로그램 종료 */
+		if (strcmp(buf, "exit") == 0) {
+			printf("프로그램을 종료합니다.\n");
+			exit(EXIT_SUCCESS);
+		}
 
-	 /* 백그라운드 실행 여부 확인 */
-	if (buf[strlen(buf) - 1] == '&') {
-		background = 1;
-		buf[strlen(buf) - 1] = '\0'; /* '&' 제거 */
-	} else {
-		background = 0;
-	}
+		/* 백그라운드 실행 여부 확인 */
+		if (buf[strlen(buf) - 1] == '&') {
+			background = 1;
+			buf[strlen(buf) - 1] = '\0'; /* '&' 제거 */
+		} else {
+			background = 0;
+		}
 
-	/* 내부 명령어 처리 */
-	if (strncmp(buf, "ls", 2) == 0) {
-		my_ls();
-	} else if (strncmp(buf, "pwd", 3) == 0) {
-		my_pwd();
-	} else if (strncmp(buf, "cd", 2) == 0) {
-		char *dir = strtok(buf + 2, " ");
-		my_cd(dir);
-	} else if (strncmp(buf, "mkdir", 5) == 0) {
-		char *dir = strtok(buf + 5, " ");
-		my_mkdir(dir);
-	} else if (strncmp(buf, "rmdir", 5) == 0) {
-		char *dir = strtok(buf + 5, " ");
-		my_rmdir(dir);
-	} else if (strncmp(buf, "ln", 2) == 0) {											char *source = strtok(buf + 2, " ");
-		char *link_name = strtok(NULL, " ");
+		/* 내부 명령어 처리 */
+		if (strncmp(buf, "ls", 2) == 0) {
+			my_ls();
+		} else if (strncmp(buf, "pwd", 3) == 0) {
+			my_pwd();
+		} else if (strncmp(buf, "cd", 2) == 0) {
+			char *dir = strtok(buf + 2, " ");
+			my_cd(dir);
+		} else if (strncmp(buf, "mkdir", 5) == 0) {
+			char *dir = strtok(buf + 5, " ");
+			my_mkdir(dir);
+		} else if (strncmp(buf, "rmdir", 5) == 0) {
+			char *dir = strtok(buf + 5, " ");
+			my_rmdir(dir);
+		} else if (strncmp(buf, "ln", 2) == 0) {
+			char *source = strtok(buf + 2, " ");
+			char *link_name = strtok(NULL, " ");
 			my_ln(source, link_name);
-	} else if (strncmp(buf, "cp", 2) == 0) {
-		char *source = strtok(buf + 2, " ");
-		char *destination = strtok(NULL, " ");
-		my_cp(source, destination);
-	} else if (strncmp(buf, "rm", 2) == 0) {
-		char *file = strtok(buf + 2, " ");
-		my_rm(file);
-	} else if (strncmp(buf, "mv", 2) == 0) {
-		char *source = strtok(buf + 2, " ");
-		char *destination = strtok(NULL, " ");
-		my_mv(source, destination);
-	} else if (strncmp(buf, "cat", 3) == 0) {
-		char *file = strtok(buf + 3, " ");
-		my_cat(file);
-	} else {
+		} else if (strncmp(buf, "cp", 2) == 0) {
+			char *source = strtok(buf + 2, " ");
+			char *destination = strtok(NULL, " ");
+			my_cp(source, destination);
+		} else if (strncmp(buf, "rm", 2) == 0) {
+			char *file = strtok(buf + 2, " ");
+			my_rm(file);
+		} else if (strncmp(buf, "mv", 2) == 0) {
+			char *source = strtok(buf + 2, " ");
+			char *destination = strtok(NULL, " ");
+			my_mv(source, destination);
+		} else if (strncmp(buf, "cat", 3) == 0) {
+			char *file = strtok(buf + 3, " ");
+			my_cat(file);
+		} else {
+			
 		/* 외부 명령어 실행 */
 		narg = getargs(buf, argv);
 
-      		pid = fork();
+		pid = fork();	
 		if (pid == 0) {
 			/* 자식 프로세스 */
 			/* 파일 재지향 및 파이프 기능 추가 */
 			int input_fd, output_fd;
 			char *input_file, *output_file;
+		
+		if ((input_file = strchr(buf, '<')) != NULL) {
+			*input_file = '\0';
+			input_file = strtok(input_file + 1, " ");
+			input_fd = open(input_file, O_RDONLY);
+			dup2(input_fd, 0);
+			close(input_fd);
+		}
+		if ((output_file = strchr(buf, '>')) != NULL) {
+			*output_file = '\0';
+			output_file = strtok(output_file + 1, " ");
+			output_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			dup2(output_fd, 1);
+			close(output_fd);
+		}
 
-			if ((input_file = strchr(buf, '<')) != NULL) {
-				*input_file = '\0';
-				input_file = strtok(input_file + 1, " ");
-				input_fd = open(input_file, O_RDONLY);
-				dup2(input_fd, 0);
-				close(input_fd);
-			}
-
-			if ((output_file = strchr(buf, '>')) != NULL) {
-				*output_file = '\0';
-				output_file = strtok(output_file + 1, " ");
-				output_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-				dup2(output_fd, 1);
-				close(output_fd);
-			}
-
-			execvp(argv[0], argv);
-			perror("execvp 실패");
-			exit(EXIT_FAILURE);
+		execvp(argv[0], argv);
+		perror("execvp 실패");
+		exit(EXIT_FAILURE);
 		} else if (pid > 0) {
 			/* 부모 프로세스 */
 			if (!background) {
@@ -221,6 +226,7 @@ int main() {
 		}
 	}
 }
+
 	return 0;
 }
 
